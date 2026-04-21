@@ -1,12 +1,25 @@
 var countries = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017");
-var countryList = countries.aggregate_array("country_na");
+var countryList = countries.aggregate_array("country_na").sort();
 
 var months = [
-  {label: 'January', value: 1}, {label: 'February', value: 2}, {label: 'March', value: 3},
-  {label: 'April', value: 4}, {label: 'May', value: 5}, {label: 'June', value: 6},
-  {label: 'July', value: 7}, {label: 'August', value: 8}, {label: 'September', value: 9},
-  {label: 'October', value: 10}, {label: 'November', value: 11}, {label: 'December', value: 12}
+  {label: 'January', value: 1},
+  {label: 'February', value: 2},
+  {label: 'March', value: 3},
+  {label: 'April', value: 4},
+  {label: 'May', value: 5},
+  {label: 'June', value: 6},
+  {label: 'July', value: 7},
+  {label: 'August', value: 8},
+  {label: 'September', value: 9},
+  {label: 'October', value: 10},
+  {label: 'November', value: 11},
+  {label: 'December', value: 12}
 ];
+
+var monthNames = ee.List([
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+]);
 
 var variableOptions = {
   'Temperature (°C)': {
@@ -20,13 +33,31 @@ var variableOptions = {
     dataset: 'ECMWF/ERA5_LAND/DAILY_AGGR',
     vis: {min: 0, max: 10, palette: ['white', 'blue', 'darkblue']},
     convert: function(img) { return img.multiply(1000); }
+  },
+  'Pressure (hPa)': {
+    band: 'surface_pressure',
+    dataset: 'ECMWF/ERA5_LAND/DAILY_AGGR',
+    vis: {min: 900, max: 1050, palette: ['purple', 'blue', 'cyan', 'yellow', 'orange', 'red']},
+    convert: function(img) { return img.divide(100); }
   }
 };
 
 // === UI ===
-var variableSelect = ui.Select({items: Object.keys(variableOptions), placeholder: 'Variable'});
-var countrySelect = ui.Select({items: countryList.getInfo(), placeholder: 'Country'});
-var monthSelect = ui.Select({items: months.map(function(m) { return m.label; }), placeholder: 'Month'});
+var variableSelect = ui.Select({
+  items: Object.keys(variableOptions),
+  placeholder: 'Variable'
+});
+
+var countrySelect = ui.Select({
+  items: countryList.getInfo(),
+  placeholder: 'Country'
+});
+
+var monthSelect = ui.Select({
+  items: months.map(function(m) { return m.label; }),
+  placeholder: 'Month'
+});
+
 var year1Select = ui.Textbox({placeholder: 'Year 1'});
 var year2Select = ui.Textbox({placeholder: 'Year 2'});
 var year3Select = ui.Textbox({placeholder: 'Year 3'});
@@ -52,23 +83,45 @@ topControls.add(variableSelect)
 
 var creditPanel = ui.Panel({
   widgets: [
-    ui.Label('Dr. Cesar Ivan Alvarez · University of Augsburg · cesar.alvarez@uni-a.de',
-      {fontSize: '11px', margin: '4px 0 0 20px'}),
-    ui.Label('LinkedIn', {fontSize: '11px', color: 'blue', margin: '4px 0 0 10px'})
-      .setUrl('https://www.linkedin.com/in/cesar-ivan-alvarez-0847253a/'),
-    ui.Label('Source: ERA5-Land Daily Aggregated – ECMWF Climate Reanalysis',
-      {fontSize: '11px', color: 'gray', margin: '4px 0 0 20px'}),
-    ui.Label('Cite as: GEE App by Dr. Cesar Ivan Alvarez (2025), University of Augsburg.',
-      {fontSize: '10px', color: 'gray', fontStyle: 'italic', margin: '4px 0 0 20px'})
+    ui.Label(
+      'Dr. Cesar Ivan Alvarez · University of Augsburg · cesar.alvarez@uni-a.de',
+      {fontSize: '11px', margin: '4px 0 0 20px'}
+    ),
+    ui.Label(
+      'LinkedIn',
+      {fontSize: '11px', color: 'blue', margin: '4px 0 0 10px'}
+    ).setUrl('https://www.linkedin.com/in/cesar-ivan-alvarez-0847253a/'),
+    ui.Label(
+      'Source: ERA5-Land Daily Aggregated – ECMWF Climate Reanalysis',
+      {fontSize: '11px', color: 'gray', margin: '4px 0 0 20px'}
+    ),
+    ui.Label(
+      'Cite as: GEE App by Dr. Cesar Ivan Alvarez (2026), University of Augsburg.',
+      {fontSize: '10px', color: 'gray', fontStyle: 'italic', margin: '4px 0 0 20px'}
+    )
   ],
   layout: ui.Panel.Layout.flow('horizontal'),
   style: {stretch: 'horizontal'}
 });
 
-var mapsPanel = ui.Panel({layout: ui.Panel.Layout.flow('horizontal'), style: {height: '50vh', margin: '0', padding: '0'}});
-var chartCountryPanel = ui.Panel({style: {width: '50%', padding: '0', margin: '0'}});
-var chartPointPanel = ui.Panel({style: {width: '50%', padding: '0', margin: '0'}});
-var chartPanel = ui.Panel({layout: ui.Panel.Layout.flow('horizontal'), widgets: [chartCountryPanel, chartPointPanel], style: {height: '50vh', margin: '0', padding: '0'}});
+var mapsPanel = ui.Panel({
+  layout: ui.Panel.Layout.flow('horizontal'),
+  style: {height: '50vh', margin: '0', padding: '0'}
+});
+
+var chartCountryPanel = ui.Panel({
+  style: {width: '50%', padding: '0', margin: '0'}
+});
+
+var chartPointPanel = ui.Panel({
+  style: {width: '50%', padding: '0', margin: '0'}
+});
+
+var chartPanel = ui.Panel({
+  layout: ui.Panel.Layout.flow('horizontal'),
+  widgets: [chartCountryPanel, chartPointPanel],
+  style: {height: '50vh', margin: '0', padding: '0'}
+});
 
 var fullApp = ui.Panel({
   layout: ui.Panel.Layout.flow('vertical'),
@@ -88,24 +141,50 @@ function linkAllMaps() {
 }
 
 function clearLinkedMaps() {
-  while (linkedMaps.length > 0) linkedMaps.pop();
+  while (linkedMaps.length > 0) {
+    linkedMaps.pop();
+  }
 }
 
 function createLegend(visParams, title) {
-  var legend = ui.Panel({style: {position: 'bottom-left', padding: '8px', backgroundColor: 'white'}});
-  legend.add(ui.Label({value: title, style: {fontWeight: 'bold', fontSize: '14px'}}));
+  var legend = ui.Panel({
+    style: {
+      position: 'bottom-left',
+      padding: '8px',
+      backgroundColor: 'white'
+    }
+  });
+
+  legend.add(ui.Label({
+    value: title,
+    style: {fontWeight: 'bold', fontSize: '14px'}
+  }));
+
   legend.add(ui.Thumbnail({
-    image: ee.Image.pixelLonLat().select(0).int()
-      .visualize({min: visParams.min, max: visParams.max, palette: visParams.palette}),
+    image: ee.Image.pixelLonLat().select(0)
+      .multiply((visParams.max - visParams.min) / 100.0)
+      .add(visParams.min)
+      .visualize({
+        min: visParams.min,
+        max: visParams.max,
+        palette: visParams.palette
+      }),
     params: {bbox: [0, 0, 100, 10], dimensions: '100x10'},
     style: {stretch: 'horizontal', margin: '0px 8px'}
   }));
+
   legend.add(ui.Panel({
     widgets: [
       ui.Label(visParams.min.toString(), {margin: '4px 8px'}),
-      ui.Label(visParams.max.toString(), {margin: '4px 8px', textAlign: 'right'})
-    ], layout: ui.Panel.Layout.flow('horizontal')
+      ui.Label(visParams.max.toString(), {
+        margin: '4px 8px',
+        textAlign: 'right',
+        stretch: 'horizontal'
+      })
+    ],
+    layout: ui.Panel.Layout.flow('horizontal')
   }));
+
   return legend;
 }
 
@@ -120,12 +199,17 @@ function generateMaps() {
   var countryName = countrySelect.getValue();
   var monthLabel = monthSelect.getValue();
   var years = [year1Select.getValue(), year2Select.getValue(), year3Select.getValue()]
-                .map(Number)
-                .filter(function(y) { return !isNaN(y); });
+    .map(Number)
+    .filter(function(y) { return !isNaN(y); });
 
-  if (!variable || !countryName || !monthLabel || years.length !== 3) return;
+  if (!variable || !countryName || !monthLabel || years.length !== 3) {
+    return;
+  }
 
-  var monthValue = months.filter(function(m) { return m.label === monthLabel; })[0].value;
+  var monthValue = months.filter(function(m) {
+    return m.label === monthLabel;
+  })[0].value;
+
   var config = variableOptions[variable];
   var dataset = ee.ImageCollection(config.dataset).select(config.band);
   var convert = config.convert;
@@ -145,7 +229,10 @@ function generateMaps() {
     map.add(createLegend(visParams, variable));
 
     var label = ui.Label(monthLabel + ' ' + year, {
-      fontWeight: 'bold', textAlign: 'center', stretch: 'horizontal', padding: '4px'
+      fontWeight: 'bold',
+      textAlign: 'center',
+      stretch: 'horizontal',
+      padding: '4px'
     });
 
     var container = ui.Panel([label, map], null, {
@@ -168,11 +255,16 @@ function generateMaps() {
 }
 
 function showCountryChartAllMonths(dataset, bandName, config, variable, country) {
-  var features = ee.List.sequence(2001, 2023).map(function(year) {
+  var features = ee.List.sequence(2001, 2025).map(function(year) {
+    year = ee.Number(year);
+
     return ee.List.sequence(1, 12).map(function(month) {
+      month = ee.Number(month);
+
       var start = ee.Date.fromYMD(year, month, 1);
       var end = start.advance(1, 'month');
       var image = dataset.filterDate(start, end).mean();
+
       var reduced = image.reduceRegion({
         reducer: ee.Reducer.mean(),
         geometry: country,
@@ -180,48 +272,58 @@ function showCountryChartAllMonths(dataset, bandName, config, variable, country)
         maxPixels: 1e13
       }).get(bandName);
 
-      return ee.Algorithms.If(reduced,
-        ee.Feature(null, {
-          'year': year,
-          'month': month,
-          'value': config.convert(ee.Image.constant(reduced)).reduceRegion({
-            reducer: ee.Reducer.first(),
-            geometry: country,
-            scale: 10000
-          }).get('constant')
-        }),
-        null);
+      var convertedValue = ee.Algorithms.If(
+        reduced,
+        config.convert(ee.Image.constant(ee.Number(reduced))).reduceRegion({
+          reducer: ee.Reducer.first(),
+          geometry: country,
+          scale: 10000,
+          maxPixels: 1e13
+        }).get('constant'),
+        null
+      );
+
+      return ee.Feature(null, {
+        'year': year,
+        'month': month,
+        'month_name': monthNames.get(month.subtract(1)),
+        'value': convertedValue
+      });
     });
   }).flatten();
 
-  var filtered = features.filter(ee.Filter.neq('value', null));
-  var pointsByMonth = ee.FeatureCollection(filtered);
+  var pointsByMonth = ee.FeatureCollection(features)
+    .filter(ee.Filter.notNull(['value']));
 
   var chart = ui.Chart.feature.groups({
     features: pointsByMonth,
     xProperty: 'year',
     yProperty: 'value',
-    seriesProperty: 'month'
-  }).setChartType('LineChart')
-    .setOptions({
-      title: variable + ' – Monthly Mean by Year (Country)',
-      hAxis: {title: 'Year'},
-      vAxis: {title: variable},
-      lineWidth: 2,
-      pointSize: 2,
-      legend: {position: 'top'}
-    });
+    seriesProperty: 'month_name'
+  })
+  .setChartType('LineChart')
+  .setOptions({
+    title: variable + ' – Monthly Mean by Year (Country)',
+    hAxis: {title: 'Year'},
+    vAxis: {title: variable},
+    lineWidth: 2,
+    pointSize: 2,
+    legend: {position: 'top'}
+  });
 
   chartCountryPanel.widgets().reset([chart]);
 }
 
 function showPointChart(lon, lat, dataset, bandName, config, variable, monthValue, monthLabel) {
   var point = ee.Geometry.Point([lon, lat]);
-  var timeSeries = ee.List.sequence(2001, 2023).map(function(year) {
+
+  var timeSeries = ee.List.sequence(2001, 2025).map(function(year) {
     year = ee.Number(year);
+
     var start = ee.Date.fromYMD(year, monthValue, 1);
     var end = start.advance(1, 'month');
     var image = dataset.filterDate(start, end).mean();
+
     var stat = image.reduceRegion({
       reducer: ee.Reducer.mean(),
       geometry: point,
@@ -229,19 +331,26 @@ function showPointChart(lon, lat, dataset, bandName, config, variable, monthValu
       maxPixels: 1e13
     }).get(bandName);
 
-    return ee.Algorithms.If(stat,
-      ee.Feature(null, {
-        'year': year,
-        'value': config.convert(ee.Image.constant(stat)).reduceRegion({
-          reducer: ee.Reducer.first(),
-          geometry: point,
-          scale: 1000
-        }).get('constant')
-      }),
-      null);
-  }).filter(ee.Filter.notNull(['value']));
+    var convertedValue = ee.Algorithms.If(
+      stat,
+      config.convert(ee.Image.constant(ee.Number(stat))).reduceRegion({
+        reducer: ee.Reducer.first(),
+        geometry: point,
+        scale: 1000,
+        maxPixels: 1e13
+      }).get('constant'),
+      null
+    );
 
-  var fc = ee.FeatureCollection(timeSeries);
+    return ee.Feature(null, {
+      'year': year,
+      'value': convertedValue
+    });
+  });
+
+  var fc = ee.FeatureCollection(timeSeries)
+    .filter(ee.Filter.notNull(['value']));
+
   var chart = ui.Chart.feature.byFeature(fc, 'year', 'value')
     .setChartType('ScatterChart')
     .setOptions({
